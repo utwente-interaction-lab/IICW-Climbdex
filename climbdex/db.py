@@ -24,6 +24,10 @@ QUERIES = {
         SELECT name
         FROM climbs
         WHERE uuid = $uuid""",
+    "climb_data": """
+        SELECT *
+        FROM climbs
+        WHERE uuid = $uuid""",
     "colors": """
         SELECT
             placement_roles.id,
@@ -186,7 +190,6 @@ def get_data(board_name, query_name, binds={}):
     cursor = database.cursor()
     cursor.execute(QUERIES[query_name], binds)
     return cursor.fetchall()
-
 
 def get_search_count(args):
     base_sql, binds = get_search_base_sql_and_binds(args)

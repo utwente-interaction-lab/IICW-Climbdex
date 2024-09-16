@@ -61,6 +61,10 @@
       <div class="col-md-5 card p-3 g-2 vh-100">
         <h4 id="header-results-count"></h4>
         <p class="mb-3"><small><a id="anchor-back">Back to filter selection</a></small></p>
+        <div class="btn-group mb-3" role="group" aria-label="Export Button Bar">
+          <button type="button" class="btn btn-outline-primary" id="export-list-csv-button" onclick="exportResultsList('csv')">Export List as CSV</button>
+          <button type="button" class="btn btn-outline-primary" id="export-list-json-button"  onclick="exportResultsList('json')">Export List as JSON</button>
+        </div>
         <div id="div-results-list" class="list-group"></div>
       </div>
       <div class="col-md-5 card p-3 g-2 vh-100" id="div-climb">
@@ -94,6 +98,12 @@
               </svg>
             </button>
             <ul class="dropdown-menu dropdown-menu-end">
+              <li>
+                <button class="dropdown-item export-climb" id="export-list-json-button" data-type="json" hidden="True">Export Climb as JSON</button>
+              </li>
+              <li>
+                <button class="dropdown-item export-climb" id="export-list-csv-button" data-type="csv" hidden="True">Export Climb as CSV</button>
+              </li>
               {% if layout_is_mirrored %}
               <li id="button-mirror-list-item">
                 <button id="button-mirror" type="button" class="dropdown-item btn" data-bs-toggle="button" onclick="mirrorClimb()">
@@ -116,6 +126,7 @@
                     0
                   </span>
                 </a>
+
               </li>
             </ul>
           </div>
@@ -214,7 +225,15 @@
         function updateAttemptsDisplay(value) {
           return value + (value === 1 ? ' try' : ' tries');
         }
-
+        function addExportClimbClickListener(button){
+          button.addEventListener('click', function () {
+            exportSelectedClimb(this.getAttribute('data-type'), this.getAttribute('data-climb-uuid'));
+          });
+        }
+        buttons = document.getElementsByClassName('export-climb');
+        for (var i = 0; i < buttons.length; i++) {
+          addExportClimbClickListener(buttons[i]);
+        }
         document.getElementById('increaseAttempts').addEventListener('click', function () {
           const attemptsInput = document.getElementById('attempts');
           let numericValue = parseInt(attemptsInput.value);

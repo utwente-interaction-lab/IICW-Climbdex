@@ -61,6 +61,10 @@ def sets(board_name, layout_id, size_id):
         )
     )
 
+@blueprint.route("/api/v1/<board_name>/climb_data/<uuid>")
+def climb(board_name, uuid):
+    return flask.jsonify(climbdex.db.get_data(board_name, "climb_data", {"uuid": uuid})[0])
+
 @blueprint.route("/api/v1/search/count")
 @ValidateParameters(parameter_error)
 def resultsCount(

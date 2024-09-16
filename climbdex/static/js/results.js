@@ -61,6 +61,13 @@ function drawClimb(
   anchor.target = "_blank";
   anchor.rel = "noopener noreferrer";
 
+  // add uuid to download buttons
+  buttons = document.getElementsByClassName("export-climb");
+  for (let i = 0; i < buttons.length; i++) {
+    buttons[i].dataset.climbUuid = uuid
+    buttons[i].hidden = false;
+  }
+
   const diffForSave = document.getElementById("difficulty");
   diffForSave.value = difficulty;
   const event = new Event("change");
@@ -229,6 +236,12 @@ async function fetchBetaCount(board, uuid) {
   return responseJson.length;
 }
 
+async function fetchClimb(board,uuid) {
+  const response = await fetch(`/api/v1/${board}/climb_data/${uuid}`);
+  const climb = await response.json();
+  return climb;
+}
+
 async function fetchResultsCount() {
   const urlParams = new URLSearchParams(window.location.search);
   const response = await fetch("/api/v1/search/count?" + urlParams);
@@ -241,6 +254,77 @@ async function fetchResultsCount() {
   } else {
     return resultsCount;
   }
+}
+function exportResultsList(type) {
+  fetchResultsCount().then((resultsCount) => {
+    fetchResults(0, resultsCount).then((results) => {
+      if (type === "json") {
+        exportResultsAsJson(results, "climbs.json");
+      } else if (type === "csv") {
+        exportResultsAsCSV(results, "climbs.csv");
+      }
+    });
+  });
+  
+}
+
+function exportSelectedClimb(type, uuid) {
+  const urlParams = new URLSearchParams(window.location.search);
+  board = urlParams.get("board");
+  fetchClimb(board,uuid).then((climb) => {
+    if (type === "json") {
+      exportResultsAsJson([climb], `climb_${board}_${uuid}.json`);
+    } else if (type === "csv") {
+      exportResultsAsCSV([climb], `climb_${board}_${uuid}.csv`);
+    }
+  });
+  
+}
+
+function exportResultsAsJson(results, filename) {
+  const mappedResults = results.map((result) => {
+    const obj = {};
+    const dataMembersList = dataMembers();
+    for (let i = 0; i < result.length; i++) {
+      obj[dataMembersList[i]] = result[i];
+    }
+    return obj;
+  });
+  const data = mappedResults ===1 ? JSON.stringify(mappedResults[0]) : JSON.stringify(mappedResults);
+  const blob = new Blob([data], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename || "climbs.json";
+  link.click();
+}
+
+function dataMembers(){
+  return [
+    "uuid",
+    "setter",
+    "name",
+    "description",
+    "frames",
+    "angle",
+    "ascents",
+    "difficulty",
+    "rating",
+    "difficultyError",
+    "classic",
+  ];
+}
+
+function exportResultsAsCSV(results, filename) {
+
+  const rows = results.map((result) => result.join(","));
+  const csv = [dataMembers().join(","), ...rows].join("\n");
+  const blob = new Blob([csv], { type: "text/csv" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename || "climbs.csv";
+  link.click();
 }
 
 async function fetchResults(pageNumber, pageSize) {
