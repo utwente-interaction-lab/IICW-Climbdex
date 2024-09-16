@@ -38,6 +38,23 @@ To run Climbdex locally, clone the repository and install the Python dependencie
 python3 -m pip install -r requirements.txt
 ```
 
+### Windows Setup
+
+After the dependencies are installed, start a server ([windows alternative to gunicorn](https://stackoverflow.com/questions/11087682/does-gunicorn-run-on-windows)):
+
+```
+waitress-serve wsgi:app
+```
+
+To actually use most of the features of Climbdex, at least one of the local SQLite databases are required. To download a database, use the `sync_db` script:
+
+```
+bin/win/sync_db.sh <board_name>
+```
+
+where `<board_name>` is one of `decoy`, `grasshopper`, `kilter`, `tension` or `touchstone`.
+### Unix Setup
+
 After the dependencies are installed, start a server:
 
 ```
