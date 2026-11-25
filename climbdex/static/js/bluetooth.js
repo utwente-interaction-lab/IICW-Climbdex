@@ -13,6 +13,7 @@ const PACKET_LAST = 83;
 const PACKET_ONLY = 84;
 const SERVICE_UUID = "6e400001-b5a3-f393-e0a9-e50e24dcca9e";
 const CHARACTERISTIC_UUID = "6e400002-b5a3-f393-e0a9-e50e24dcca9e";
+const ADVERTISED_SERVICE_UUID = "4488b571-7806-4df6-bcff-a2897e4953ff";
 const BLUETOOTH_UNDEFINED = "navigator.bluetooth is undefined";
 const BLUETOOTH_CANCELLED = "User cancelled the requestDevice() chooser.";
 
@@ -106,35 +107,54 @@ function splitEvery(n, list) {
   return result;
 }
 
-function illuminateClimb(board, bluetoothPacket) {
+let bluetoothCharacteristic = null;
+
+async function getCharacteristic(board) {
+  if (bluetoothCharacteristic && bluetoothCharacteristic.service.device.gatt.connected) {
+    return bluetoothCharacteristic;
+  }
   const capitalizedBoard = board[0].toUpperCase() + board.slice(1);
-  requestDevice(capitalizedBoard)
-    .then((device) => {
-      return device.gatt.connect();
-    })
-    .then((server) => {
-      return server.getPrimaryService(SERVICE_UUID);
-    })
-    .then((service) => {
-      return service.getCharacteristic(CHARACTERISTIC_UUID);
-    })
-    .then((characteristic) => {
-      const splitMessages = (buffer) =>
-        splitEvery(MAX_BLUETOOTH_MESSAGE_SIZE, buffer).map(
-          (arr) => new Uint8Array(arr)
-        );
-      return writeCharacteristicSeries(
-        characteristic,
-        splitMessages(bluetoothPacket)
-      );
-    })
+  const device = await requestDevice(capitalizedBoard);
+  const server = await device.gatt.connect();
+  const service = await server.getPrimaryService(SERVICE_UUID);
+  bluetoothCharacteristic = await service.getCharacteristic(CHARACTERISTIC_UUID);
+  return bluetoothCharacteristic;
+}
+
+/**
+ * Send an encoded packet to the board, reusing the existing connection if there is one.
+ * Rejects on failure; see illuminateClimb for user-facing error handling.
+ */
+async function sendBluetoothPacket(board, bluetoothPacket) {
+  const characteristic = await getCharacteristic(board);
+  const messages = splitEvery(MAX_BLUETOOTH_MESSAGE_SIZE, bluetoothPacket).map(
+    (arr) => new Uint8Array(arr)
+  );
+  return writeCharacteristicSeries(characteristic, messages);
+}
+
+function disconnectBoard() {
+  if (bluetoothDevice && bluetoothDevice.gatt.connected) {
+    bluetoothDevice.gatt.disconnect();
+  }
+  bluetoothCharacteristic = null;
+}
+
+function bluetoothErrorMessage(error) {
+  if (error.message === BLUETOOTH_CANCELLED) {
+    return null;
+  }
+  return error.message === BLUETOOTH_UNDEFINED
+    ? "Web Bluetooth is not supported on this browser. See https://caniuse.com/web-bluetooth for more information."
+    : `Failed to connect to LEDS: ${error}`;
+}
+
+function illuminateClimb(board, bluetoothPacket) {
+  return sendBluetoothPacket(board, bluetoothPacket)
     .then(() => console.log("Climb illuminated"))
     .catch((error) => {
-      if (error.message !== BLUETOOTH_CANCELLED) {
-        const message =
-          error.message === BLUETOOTH_UNDEFINED
-            ? "Web Bluetooth is not supported on this browser. See https://caniuse.com/web-bluetooth for more information."
-            : `Failed to connect to LEDS: ${error}`;
+      const message = bluetoothErrorMessage(error);
+      if (message) {
         alert(message);
       }
     });
@@ -154,6 +174,11 @@ async function requestDevice(namePrefix) {
       filters: [
         {
           namePrefix,
+        },
+        // Also match renamed boards (e.g. "IICW Kilter Board"), which no longer
+        // start with the board name but still advertise the Aurora service.
+        {
+          services: [ADVERTISED_SERVICE_UUID],
         },
       ],
       optionalServices: [SERVICE_UUID],
