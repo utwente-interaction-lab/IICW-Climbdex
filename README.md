@@ -30,6 +30,12 @@ These are the features that Climbdex provides which are currently not supported 
   - Climbdex is a [PWA](https://developer.mozilla.org/en-US/docs/Web/Progressive_web_apps) which means the app can be installed on almost any platform and behave similarly to a native mobile or desktop app.
 - All of the supported boards on one app.
 
+## Controlling the lights (experimental)
+
+Want to program the wall yourself? There's a small Python library (`boardlights`), a set of
+Jupyter notebooks, and an experimental "Draw on Wall" page that sends holds straight to the LEDs
+over Bluetooth. See **[docs/controlling-lights.md](docs/controlling-lights.md)**.
+
 ## Development
 
 To run Climbdex locally, clone the repository and install the Python dependencies ([venv](https://docs.python.org/3/library/venv.html) reccommended):
